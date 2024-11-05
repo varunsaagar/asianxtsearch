@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowUpRight, MessageSquare } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { api } from '../services/api';
 
 interface Message {
   id: string;
@@ -20,6 +21,8 @@ export default function Chat() {
   const location = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const initialQuery = location.state?.initialQuery;
@@ -28,68 +31,75 @@ export default function Chat() {
     }
   }, [location.state]);
 
-  const handleInitialQuery = (query: string) => {
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: query
-    };
+  const handleInitialQuery = async (query: string) => {
+    try {
+      setLoading(true);
+      const response = await api.generate({ query });
+      
+      setConversationId(response.conversation_id);
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: query
+      };
 
-    const aiResponse: Message = {
-      id: (Date.now() + 1).toString(),
-      type: 'assistant',
-      content: 'Here is the latest news about your query...',
-      sources: [
-        {
-          title: 'Latest News Update',
-          url: 'https://example.com/news/1',
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: response.answer,
+        sources: response.citations.map(citation => ({
+          title: citation.title || `Source ${citation.number}`,
+          url: citation.url,
           site: 'AsianetNews',
-          number: 1
-        },
-        {
-          title: 'Related Coverage',
-          url: 'https://example.com/news/2',
-          site: 'AsianetNews',
-          number: 2
-        }
-      ]
-    };
+          number: citation.number
+        }))
+      };
 
-    setMessages([userMessage, aiResponse]);
+      setMessages([userMessage, aiMessage]);
+    } catch (error) {
+      console.error('Error handling initial query:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || loading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: 'user',
-      content: inputValue
-    };
+    try {
+      setLoading(true);
+      const response = await api.generate(
+        { query: inputValue },
+        conversationId
+      );
 
-    const aiResponse: Message = {
-      id: (Date.now() + 1).toString(),
-      type: 'assistant',
-      content: 'Here is the latest news about your query...',
-      sources: [
-        {
-          title: 'Latest News Update',
-          url: 'https://example.com/news/1',
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        type: 'user',
+        content: inputValue
+      };
+
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: response.answer,
+        sources: response.citations.map(citation => ({
+          title: citation.title || `Source ${citation.number}`,
+          url: citation.url,
           site: 'AsianetNews',
-          number: 1
-        },
-        {
-          title: 'Related Coverage',
-          url: 'https://example.com/news/2',
-          site: 'AsianetNews',
-          number: 2
-        }
-      ]
-    };
+          number: citation.number
+        }))
+      };
 
-    setMessages([...messages, userMessage, aiResponse]);
-    setInputValue('');
+      setMessages([...messages, userMessage, aiMessage]);
+      setInputValue('');
+      setConversationId(response.conversation_id);
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -155,12 +165,14 @@ export default function Chat() {
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Ask a follow-up question..."
               className="w-full bg-[#2D3135] text-white rounded-xl py-4 px-6 pr-24 outline-none"
+              disabled={loading}
             />
             <button
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#00A3A3] text-white rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-[#00B3B3] transition-colors"
+              disabled={loading}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#00A3A3] text-white rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-[#00B3B3] transition-colors disabled:opacity-50"
             >
-              <span>Send</span>
+              <span>{loading ? 'Sending...' : 'Send'}</span>
               <ArrowUpRight size={16} />
             </button>
           </div>
