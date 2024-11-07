@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Compass, Box, Library, ArrowUpRight, LogIn } from 'lucide-react';
+import { Home, Compass, Box, Library, ArrowUpRight, LogIn } from './Icons';
 import { NavLink, useNavigate } from 'react-router-dom';
 import UserProfile from './UserProfile';
 import { useUser } from '../contexts/UserContext';
@@ -26,7 +26,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, text }) => (
   </NavLink>
 );
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen }) {
   const navigate = useNavigate();
   const { user, isLoading } = useUser();
 
@@ -35,7 +35,7 @@ export default function Sidebar() {
   }
 
   return (
-    <div className="w-64 h-screen bg-[#1A1D21] border-r border-gray-800 p-4 flex flex-col">
+    <div className={`w-64 h-screen bg-[#1A1D21] border-r border-gray-800 p-4 flex flex-col ${isOpen ? '' : 'hidden'}`}>
       <button 
         onClick={() => navigate('/')} 
         className="flex items-center gap-2 mb-6 hover:opacity-80 transition-opacity"
@@ -59,7 +59,7 @@ export default function Sidebar() {
       {user ? (
         <UserProfile
           email={user.email}
-          picture={user.picture || ''}
+          picture={user.picture}
           name={user.name}
         />
       ) : (
