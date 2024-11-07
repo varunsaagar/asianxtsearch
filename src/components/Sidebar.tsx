@@ -1,6 +1,8 @@
 import React from 'react';
 import { Home, Compass, Box, Library, ArrowUpRight, LogIn } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import UserProfile from './UserProfile';
+import { useUser } from '../contexts/UserContext';
 
 interface NavItemProps {
   to: string;
@@ -26,6 +28,11 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, text }) => (
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const { user, isLoading } = useUser();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="w-64 h-screen bg-[#1A1D21] border-r border-gray-800 p-4 flex flex-col">
@@ -49,13 +56,21 @@ export default function Sidebar() {
         <NavItem to="/library" icon={<Library size={20} />} text="Library" />
       </nav>
 
-      <button 
-        onClick={() => navigate('/login')}
-        className="mt-4 w-full bg-[#00A3A3] hover:bg-[#00B3B3] text-white rounded-lg py-2 px-4 flex items-center gap-2 justify-center transition-colors"
-      >
-        <LogIn size={20} />
-        <span>Sign In</span>
-      </button>
+      {user ? (
+        <UserProfile
+          email={user.email}
+          picture={user.picture || ''}
+          name={user.name}
+        />
+      ) : (
+        <button 
+          onClick={() => navigate('/login')}
+          className="mt-4 w-full bg-[#00A3A3] hover:bg-[#00B3B3] text-white rounded-lg py-2 px-4 flex items-center gap-2 justify-center transition-colors"
+        >
+          <LogIn size={20} />
+          <span>Sign In</span>
+        </button>
+      )}
 
       <div className="mt-auto">
         <div className="bg-[#2D3135] rounded-lg p-4">

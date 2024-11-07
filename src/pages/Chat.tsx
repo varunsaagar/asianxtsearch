@@ -3,18 +3,18 @@ import { ArrowUpRight, MessageSquare } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 
+interface Source {
+  number: number;
+  url: string;
+  title: string;
+  text: string;
+}
+
 interface Message {
   id: string;
   type: 'user' | 'assistant';
   content: string;
   sources?: Source[];
-}
-
-interface Source {
-  title: string;
-  url: string;
-  site: string;
-  number: number;
 }
 
 export default function Chat() {
@@ -31,12 +31,22 @@ export default function Chat() {
     }
   }, [location.state]);
 
+  const formatSources = (citations: any[]) => {
+    return citations.map((citation, index) => ({
+      number: index + 1,
+      url: citation.url,
+      title: citation.title || `Source ${index + 1}`,
+      text: citation.text || ''
+    }));
+  };
+
   const handleInitialQuery = async (query: string) => {
     try {
       setLoading(true);
       const response = await api.generate({ query });
       
       setConversationId(response.conversation_id);
+      
       const userMessage: Message = {
         id: Date.now().toString(),
         type: 'user',
@@ -47,12 +57,7 @@ export default function Chat() {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
         content: response.answer,
-        sources: response.citations.map(citation => ({
-          title: citation.title || `Source ${citation.number}`,
-          url: citation.url,
-          site: 'AsianetNews',
-          number: citation.number
-        }))
+        sources: formatSources(response.citations)
       };
 
       setMessages([userMessage, aiMessage]);
@@ -84,12 +89,7 @@ export default function Chat() {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
         content: response.answer,
-        sources: response.citations.map(citation => ({
-          title: citation.title || `Source ${citation.number}`,
-          url: citation.url,
-          site: 'AsianetNews',
-          number: citation.number
-        }))
+        sources: formatSources(response.citations)
       };
 
       setMessages([...messages, userMessage, aiMessage]);
@@ -100,6 +100,41 @@ export default function Chat() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const renderSources = (sources: Source[]) => {
+    if (!sources || sources.length === 0) return null;
+
+    return (
+      <div className="mt-4 space-y-2">
+        <h3 className="text-sm text-gray-400">Sources:</h3>
+        <div className="grid grid-cols-2 gap-4">
+          {sources.map((source, index) => (
+            <a
+              key={index}
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block bg-[#2D3135] rounded-lg p-4 hover:bg-[#363A3F] transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-[#1A1D21] flex items-center justify-center text-sm text-gray-400">
+                  {source.number}
+                </div>
+                <div>
+                  <h4 className="text-white font-medium mb-1">
+                    {source.title}
+                  </h4>
+                  <p className="text-gray-400 text-sm line-clamp-2">
+                    {source.text}
+                  </p>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -121,35 +156,10 @@ export default function Chat() {
                 )}
               </div>
               <div className="flex-1">
-                <div className="text-white">{message.content}</div>
-                {message.sources && (
-                  <div className="mt-4 space-y-2">
-                    <h3 className="text-sm text-gray-400">Sources:</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      {message.sources.map((source, index) => (
-                        <a
-                          key={index}
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block bg-[#2D3135] rounded-lg p-4 hover:bg-[#363A3F] transition-colors"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="w-6 h-6 rounded-full bg-[#1A1D21] flex items-center justify-center text-sm text-gray-400">
-                              {source.number}
-                            </div>
-                            <div>
-                              <h4 className="text-white font-medium mb-1">
-                                {source.title}
-                              </h4>
-                              <p className="text-gray-400 text-sm">{source.site}</p>
-                            </div>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="text-white whitespace-pre-wrap">
+                  {message.content}
+                </div>
+                {message.sources && renderSources(message.sources)}
               </div>
             </div>
           </div>
