@@ -7,10 +7,10 @@ import './index.css';
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Failed to find the root element');
 
-// Remove quotes from the client ID in .env
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-console.log('Google Client ID:', GOOGLE_CLIENT_ID); // Debug log
+console.log('Environment:', import.meta.env.MODE); // Debug log
+console.log('API URL:', import.meta.env.VITE_API_URL); // Debug log
 
 createRoot(rootElement).render(
   <StrictMode>
