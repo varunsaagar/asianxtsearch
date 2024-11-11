@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
-import { Apple, Chrome } from 'lucide-react';
+import { Apple } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 
 export default function Login() {
@@ -13,37 +13,59 @@ export default function Login() {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       console.log('Google response:', credentialResponse);
-      const response = await fetch('http://localhost:8000/api/v1/auth/google', {
+      
+      const response = await fetch('https://35.207.211.198.nip.io/api/v1/auth/google', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
           token: credentialResponse.credential
         }),
+        credentials: 'include',
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Authentication failed');
+  
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+  
+      try {
+        const data = JSON.parse(responseText);
+        
+        if (!response.ok) {
+          throw new Error(data.detail || 'Authentication failed');
+        }
+  
+        // Store token and user data
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Update context
+        setUser(data.user);
+        
+        // Log success
+        console.log('Authentication successful:', data.user);
+        
+        // Navigate to home
+        navigate('/');
+        
+      } catch (parseError) {
+        console.error('Failed to parse JSON:', parseError);
+        console.error('Raw response:', responseText);
+        throw new Error('Server returned invalid JSON');
       }
-
-      const data = await response.json();
-      localStorage.setItem('token', data.access_token);
-      setUser(data.user);  // Update user context
-      navigate('/');
+  
     } catch (error) {
       console.error('Login error:', error);
-      setError('Authentication failed. Please try again.');
+      setError(error instanceof Error ? error.message : 'Authentication failed. Please try again.');
     }
   };
-
   
-
-  const handleGoogleError = () => {
-    setError('Google sign-in failed. Please try again.');
-  };
-
+  
+  
   return (
     <div className="flex-1 flex items-center justify-center bg-[#1A1D21] p-8">
       <div className="w-full max-w-md">
@@ -76,36 +98,6 @@ export default function Login() {
               width="300"
             />
           </div>
-
-          <button className="w-full bg-black text-white rounded-lg py-3 px-4 flex items-center justify-center gap-2 hover:bg-gray-900 transition-colors">
-            <Apple size={20} />
-            Continue with Apple
-          </button>
-
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-700"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-[#1A1D21] text-gray-400">
-                Or continue with email
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#2D3135] text-white rounded-lg py-3 px-4 outline-none focus:ring-2 focus:ring-[#00A3A3]"
-            />
-          </div>
-
-          <button className="w-full bg-[#00A3A3] text-white rounded-lg py-3 px-4 font-medium hover:bg-[#00B3B3] transition-colors">
-            Continue
-          </button>
         </div>
       </div>
     </div>

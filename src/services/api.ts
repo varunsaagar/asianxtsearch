@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+const API_BASE_URL = 'https://35.207.211.198.nip.io/api/v1';
 
 interface QueryParams {
   query: string;
@@ -32,7 +32,10 @@ export const api = {
       },
       body: JSON.stringify(params),
     });
-    if (!response.ok) throw new Error('Search failed');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Search failed');
+    }
     return response.json();
   },
 
@@ -45,13 +48,19 @@ export const api = {
       },
       body: JSON.stringify(params),
     });
-    if (!response.ok) throw new Error('Generation failed');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Generation failed');
+    }
     return response.json();
   },
 
   async getConversation(conversationId: string) {
     const response = await fetch(`${API_BASE_URL}/conversation/${conversationId}`);
-    if (!response.ok) throw new Error('Failed to fetch conversation');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to fetch conversation');
+    }
     return response.json();
   },
 
@@ -59,7 +68,10 @@ export const api = {
     const response = await fetch(`${API_BASE_URL}/conversation/${conversationId}`, {
       method: 'DELETE',
     });
-    if (!response.ok) throw new Error('Failed to delete conversation');
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Failed to delete conversation');
+    }
     return response.json();
   },
 };
